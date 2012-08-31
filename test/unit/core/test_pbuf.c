@@ -66,8 +66,8 @@ END_TEST
 Suite *
 pbuf_suite(void)
 {
-  TFun tests[] = {
-    test_pbuf_copy_zero_pbuf
+  testfunc tests[] = {
+    TESTFUNC(test_pbuf_copy_zero_pbuf)
   };
-  return create_suite("PBUF", tests, sizeof(tests)/sizeof(TFun), pbuf_setup, pbuf_teardown);
+  return create_suite("PBUF", tests, sizeof(tests)/sizeof(testfunc), pbuf_setup, pbuf_teardown);
 }
