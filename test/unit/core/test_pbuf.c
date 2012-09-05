@@ -3,6 +3,8 @@
 #include "lwip/pbuf.h"
 #include "lwip/stats.h"
 
+#include <signal.h>
+
 #if !LWIP_STATS || !MEM_STATS ||!MEMP_STATS
 #error "This tests needs MEM- and MEMP-statistics enabled"
 #endif
@@ -25,7 +27,7 @@ pbuf_teardown(void)
 
 /* Test functions */
 
-/** Call pbuf_copy on a pbuf with zero length */
+/** Call pbuf_copy on a pbuf with zero length, expected to abort */
 START_TEST(test_pbuf_copy_zero_pbuf)
 {
   struct pbuf *p1, *p2, *p3;
@@ -66,8 +68,12 @@ END_TEST
 Suite *
 pbuf_suite(void)
 {
-  testfunc tests[] = {
-    TESTFUNC(test_pbuf_copy_zero_pbuf)
-  };
-  return create_suite("PBUF", tests, sizeof(tests)/sizeof(testfunc), pbuf_setup, pbuf_teardown);
+  const char *name = "PBUF";
+  Suite *s = suite_create(name);
+
+  TCase *tc = tcase_create(name);
+  tcase_add_test_raise_signal(tc, test_pbuf_copy_zero_pbuf, SIGABRT);
+  suite_add_tcase(s, tc);
+
+  return s;
 }
