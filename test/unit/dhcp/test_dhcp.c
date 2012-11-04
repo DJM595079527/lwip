@@ -128,10 +128,10 @@ static int tick = 0;
 static void tick_lwip(void)
 {
   tick++;
-  if (tick % 5 == 0) {
+  if ((tick * 100) % DHCP_FINE_TIMER_MSECS == 0) {
     dhcp_fine_tmr();
   }
-  if (tick % 600 == 0) {
+  if ((tick * 100) % DHCP_COARSE_TIMER_MSECS == 0) {
     dhcp_coarse_tmr();
   }
 }
@@ -370,13 +370,14 @@ static err_t lwip_tx_func(struct netif *netif, struct pbuf *p)
     case 4:
     case 5:
     case 6:
-      {
-        const u8_t arpproto[] = { 0x08, 0x06 };
+      {				/* ARP proto, ethernet,   IP,       ,mac 6, addr 4, query */
+        const u8_t arpdata[] = { 0x08, 0x06, 0x00, 0x01, 0x08, 0x00, 0x06, 0x04, 0x00, 0x01 };
 
         check_pkt(p, 0, broadcast, 6); // eth level dest: broadcast
         check_pkt(p, 6, netif->hwaddr, 6); // eth level src: unit mac
 
-        check_pkt(p, 12, arpproto, sizeof(arpproto)); // eth level proto: ip
+        check_pkt(p, 12, arpdata, sizeof(arpdata)); // eth level proto: ip
+        check_pkt(p, 22, netif->hwaddr, 6); // arp hwaddr: unit mac
         break;
       }
     case 7:
@@ -703,7 +704,7 @@ START_TEST(test_dhcp_relayed)
   0x12, 0x34, 0x56, 0x78, 0x9a, 0xab, // Target MAC
   0x4f, 0x8a, 0x32, 0x01, // Target IP
 
-  0x00, 0x23, 0xc1, 0x00, 0x06, 0x50, // src mac
+  0x00, 0x23, 0xc1, 0xde, 0xd0, 0x0d, // src mac
   0x4f, 0x8a, 0x33, 0x05, // src ip
 
   // Padding follows..
@@ -753,7 +754,7 @@ START_TEST(test_dhcp_relayed)
   for (i = 0; i < 25; i++) {
     tick_lwip();
   }
-  fail_unless(txpacket == 4, "txpkt should be 5, is %d", txpacket); // ARP requests sent
+  fail_unless(txpacket == 4, "txpkt should be 4, is %d", txpacket); // ARP requests sent
 
   // Interface up
   fail_unless(netif_is_up(&net_test));
@@ -768,7 +769,16 @@ START_TEST(test_dhcp_relayed)
 
   fail_unless(txpacket == 4, "txpacket = %d", txpacket);
 
+  // Time goes, need to renew
+  // Will send arp for dhcp server
   for (i = 0; i < 108000 - 25; i++) {
+    tick_lwip();
+  }
+  fail_unless(netif_is_up(&net_test));
+  fail_unless(txpacket == 5, "txpacket = %d", txpacket);
+
+  // We dont reply, dhcp will try again
+  for (i = 0; i < 20; i++) {
     tick_lwip();
   }
 
