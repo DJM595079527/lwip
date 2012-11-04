@@ -68,12 +68,8 @@ END_TEST
 Suite *
 pbuf_suite(void)
 {
-  const char *name = "PBUF";
-  Suite *s = suite_create(name);
-
-  TCase *tc = tcase_create(name);
-  tcase_add_test_raise_signal(tc, test_pbuf_copy_zero_pbuf, SIGABRT);
-  suite_add_tcase(s, tc);
-
-  return s;
+  testfunc tests[] = {
+    TESTFUNC(test_pbuf_copy_zero_pbuf),
+  };
+  return create_suite("PBUF", tests, sizeof(tests)/sizeof(testfunc), pbuf_setup, pbuf_teardown);
 }
